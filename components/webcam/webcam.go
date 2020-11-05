@@ -2,59 +2,30 @@ package webcam
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
+	"github.com/blackjack/webcam"
 	"image"
 	"image/jpeg"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
-	"os"
 	"sort"
 	"strconv"
 	"time"
-
-	"github.com/blackjack/webcam"
 )
 
-const (
-	V4L2_PIX_FMT_PJPG = 0x47504A50
-	V4L2_PIX_FMT_YUYV = 0x56595559
-)
-
-type FrameSizes []webcam.FrameSize
-
-func (slice FrameSizes) Len() int {
-	return len(slice)
+type WebcamService struct {
+	imageChan chan *bytes.Buffer
 }
 
-//For sorting purposes
-func (slice FrameSizes) Less(i, j int) bool {
-	ls := slice[i].MaxWidth * slice[i].MaxHeight
-	rs := slice[j].MaxWidth * slice[j].MaxHeight
-	return ls < rs
+func NewWebcamService() *WebcamService {
+	return &WebcamService{
+		imageChan: make(chan *bytes.Buffer),
+	}
 }
 
-//For sorting purposes
-func (slice FrameSizes) Swap(i, j int) {
-	slice[i], slice[j] = slice[j], slice[i]
-}
-
-var supportedFormats = map[webcam.PixelFormat]bool{
-	V4L2_PIX_FMT_PJPG: true,
-	V4L2_PIX_FMT_YUYV: true,
-}
-
-func main() {
-	dev := flag.String("d", "/dev/video0", "video device to use")
-	fmtstr := flag.String("f", "", "video format to use, default first supported")
-	szstr := flag.String("s", "", "frame size to use, default largest one")
-	single := flag.Bool("m", false, "single image http mode, default mjpeg video")
-	addr := flag.String("l", ":8080", "addr to listien")
-	fps := flag.Bool("p", false, "print fps info")
-	flag.Parse()
-
+func (s *WebcamService) Init(dev *string, fmtstr *string, szstr *string, fps *bool) {
 	cam, err := webcam.Open(*dev)
 	if err != nil {
 		panic(err.Error())
@@ -62,16 +33,10 @@ func main() {
 	defer cam.Close()
 
 	// select pixel format
-	format_desc := cam.GetSupportedFormats()
-
-	fmt.Println("Available formats:")
-	for _, s := range format_desc {
-		fmt.Fprintln(os.Stderr, s)
-	}
-
+	formatDesc := cam.GetSupportedFormats()
 	var format webcam.PixelFormat
 FMT:
-	for f, s := range format_desc {
+	for f, s := range formatDesc {
 		if *fmtstr == "" {
 			if supportedFormats[f] {
 				format = f
@@ -80,13 +45,14 @@ FMT:
 
 		} else if *fmtstr == s {
 			if !supportedFormats[f] {
-				log.Println(format_desc[f], "format is not supported, exiting")
+				log.Println(formatDesc[f], "format is not supported, exiting")
 				return
 			}
 			format = f
 			break
 		}
 	}
+
 	if format == 0 {
 		log.Println("No format found, exiting")
 		return
@@ -96,10 +62,6 @@ FMT:
 	frames := FrameSizes(cam.GetSupportedFrameSizes(format))
 	sort.Sort(frames)
 
-	fmt.Fprintln(os.Stderr, "Supported frame sizes for format", format_desc[format])
-	for _, f := range frames {
-		fmt.Fprintln(os.Stderr, f.GetString())
-	}
 	var size *webcam.FrameSize
 	if *szstr == "" {
 		size = &frames[len(frames)-1]
@@ -115,14 +77,11 @@ FMT:
 		return
 	}
 
-	fmt.Fprintln(os.Stderr, "Requesting", format_desc[format], size.GetString())
 	f, w, h, err := cam.SetImageFormat(format, uint32(size.MaxWidth), uint32(size.MaxHeight))
 	if err != nil {
 		log.Println("SetImageFormat return error", err)
 		return
-
 	}
-	fmt.Fprintf(os.Stderr, "Resulting image format: %s %dx%d\n", format_desc[f], w, h)
 
 	// start streaming
 	err = cam.StartStreaming()
@@ -132,16 +91,11 @@ FMT:
 	}
 
 	var (
-		li   = make(chan *bytes.Buffer)
 		fi   = make(chan []byte)
 		back = make(chan struct{})
 	)
-	go encodeToImage(cam, back, fi, li, w, h, f)
-	if *single {
-		go httpImage(*addr, li)
-	} else {
-		go httpVideo(*addr, li)
-	}
+
+	go encodeToImage(cam, back, fi, s.imageChan, w, h, f)
 
 	timeout := uint32(5) //5 seconds
 	start := time.Now()
@@ -186,6 +140,38 @@ FMT:
 				<-back
 			default:
 			}
+		}
+	}
+}
+
+func (s *WebcamService) HandleHttp(w http.ResponseWriter, r *http.Request) {
+	log.Println("connect from", r.RemoteAddr, r.URL)
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+
+	//remove stale image
+	<-s.imageChan
+	const boundary = `frame`
+	w.Header().Set("Content-Type", `multipart/x-mixed-replace;boundary=`+boundary)
+	multipartWriter := multipart.NewWriter(w)
+	multipartWriter.SetBoundary(boundary)
+	for {
+		img := <-s.imageChan
+		image := img.Bytes()
+		iw, err := multipartWriter.CreatePart(textproto.MIMEHeader{
+			"Content-type":   []string{"image/jpeg"},
+			"Content-length": []string{strconv.Itoa(len(image))},
+		})
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		_, err = iw.Write(image)
+		if err != nil {
+			log.Println(err)
+			return
 		}
 	}
 }
@@ -243,65 +229,4 @@ func encodeToImage(wc *webcam.Webcam, back chan struct{}, fi chan []byte, li cha
 		}
 
 	}
-}
-
-func httpImage(addr string, li chan *bytes.Buffer) {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("connect from", r.RemoteAddr, r.URL)
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-
-		//remove stale image
-		<-li
-
-		img := <-li
-
-		w.Header().Set("Content-Type", "image/jpeg")
-
-		if _, err := w.Write(img.Bytes()); err != nil {
-			log.Println(err)
-			return
-		}
-
-	})
-
-	log.Fatal(http.ListenAndServe(addr, nil))
-}
-
-func httpVideo(addr string, li chan *bytes.Buffer) {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("connect from", r.RemoteAddr, r.URL)
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-
-		//remove stale image
-		<-li
-		const boundary = `frame`
-		w.Header().Set("Content-Type", `multipart/x-mixed-replace;boundary=`+boundary)
-		multipartWriter := multipart.NewWriter(w)
-		multipartWriter.SetBoundary(boundary)
-		for {
-			img := <-li
-			image := img.Bytes()
-			iw, err := multipartWriter.CreatePart(textproto.MIMEHeader{
-				"Content-type":   []string{"image/jpeg"},
-				"Content-length": []string{strconv.Itoa(len(image))},
-			})
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			_, err = iw.Write(image)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-		}
-	})
-
-	log.Fatal(http.ListenAndServe(addr, nil))
 }
