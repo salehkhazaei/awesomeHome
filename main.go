@@ -1,1 +1,5 @@
-package awesomeHome
+package main
+
+func main() {
+
+}
