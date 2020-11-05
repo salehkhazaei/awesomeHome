@@ -20,3 +20,7 @@ func Exec(cmd string, args ...string) error {
 
 	return nil
 }
+
+func VLC(filename string) error {
+	return Exec("vlc", filename)
+}
