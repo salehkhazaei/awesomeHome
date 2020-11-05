@@ -51,8 +51,8 @@ func (cmd *OnlineVideoCmd) Detect(commandStr string) bool {
 	return false
 }
 
-func (cmd *OnlineVideoCmd) Run() error {
-	return process.VLC(cmd.Url)
+func (cmd *OnlineVideoCmd) Run(processService *process.ProcessService) error {
+	return processService.VLC(cmd.Url)
 }
 
 func fetchContentType(url string) string {

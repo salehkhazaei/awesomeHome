@@ -3,8 +3,25 @@ package info
 import (
 	"encoding/json"
 	"fmt"
+	"ir.skhf/awesomeHome/broadcast"
 	"ir.skhf/awesomeHome/utils"
+	"time"
 )
+
+type AppInfoService struct {
+	BroadcastService *broadcast.BroadcastService
+	SendTime         time.Duration
+}
+
+func NewAppInfoService(
+	broadcastService *broadcast.BroadcastService,
+	sendTime time.Duration,
+) *AppInfoService {
+	return &AppInfoService{
+		BroadcastService: broadcastService,
+		SendTime:         sendTime,
+	}
+}
 
 var Major int = 1
 var Minor int = 0
@@ -14,9 +31,9 @@ type AppInfo struct {
 	IP      string
 }
 
-func Info() (string, error) {
+func (s *AppInfoService) Info() (string, error) {
 	appInfo := AppInfo{
-		Version: Version(),
+		Version: s.Version(),
 		IP:      utils.GetOutboundIP().String(),
 	}
 
@@ -28,6 +45,28 @@ func Info() (string, error) {
 	return string(appInfoJson), nil
 }
 
-func Version() string {
+func (s *AppInfoService) Version() string {
 	return fmt.Sprintf("%d.%d", Major, Minor)
+}
+
+func (s *AppInfoService) Init() {
+	go s.SendLoop()
+}
+
+func (s *AppInfoService) SendLoop() {
+	for {
+		jsonStr, err := s.Info()
+		if err != nil {
+			fmt.Printf("failed to build broadcast json due to %v\n", err)
+			continue
+		}
+
+		err = s.BroadcastService.Broadcast([]byte(jsonStr))
+		if err != nil {
+			fmt.Printf("failed to send broadcast due to %v\n", err)
+			continue
+		}
+
+		time.Sleep(s.SendTime)
+	}
 }

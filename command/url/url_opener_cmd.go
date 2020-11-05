@@ -9,8 +9,8 @@ type UrlOpenerCmd struct {
 	Url string
 }
 
-func (cmd *UrlOpenerCmd) Run() error {
-	return process.Exec(cmd.Url)
+func (cmd *UrlOpenerCmd) Run(processService *process.ProcessService) error {
+	return processService.Exec(cmd.Url)
 }
 
 func (cmd *UrlOpenerCmd) Detect(commandStr string) bool {

@@ -9,8 +9,8 @@ type GoogleItCmd struct {
 	Query string
 }
 
-func (cmd *GoogleItCmd) Run() error {
-	return process.Exec("https://google.com?q=" + url.QueryEscape(cmd.Query))
+func (cmd *GoogleItCmd) Run(processService *process.ProcessService) error {
+	return processService.Exec("https://google.com?q=" + url.QueryEscape(cmd.Query))
 }
 
 func (cmd *GoogleItCmd) Detect(commandStr string) bool {

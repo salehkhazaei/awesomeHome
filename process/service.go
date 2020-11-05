@@ -6,7 +6,13 @@ import (
 	"syscall"
 )
 
-func Exec(cmd string, args ...string) error {
+type ProcessService struct{}
+
+func NewProcessService() *ProcessService {
+	return &ProcessService{}
+}
+
+func (s *ProcessService) Exec(cmd string, args ...string) error {
 	binary, err := exec.LookPath(cmd)
 	if err != nil {
 		return err
@@ -21,6 +27,6 @@ func Exec(cmd string, args ...string) error {
 	return nil
 }
 
-func VLC(filename string) error {
-	return Exec("vlc", filename)
+func (s *ProcessService) VLC(filename string) error {
+	return s.Exec("vlc", filename)
 }

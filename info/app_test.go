@@ -5,10 +5,13 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestInfoJson(t *testing.T) {
-	js, err := Info()
+	appInfoService := NewAppInfoService(nil, time.Millisecond)
+
+	js, err := appInfoService.Info()
 	if err != nil {
 		panic(err)
 	}
@@ -25,7 +28,8 @@ func TestInfoJson(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	arr := strings.Split(Version(), ".")
+	appInfoService := NewAppInfoService(nil, time.Millisecond)
+	arr := strings.Split(appInfoService.Version(), ".")
 	if len(arr) != 2 {
 		t.Error("invalid version format")
 	}

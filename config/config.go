@@ -1,10 +1,11 @@
-package conf
+package config
 
 import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -16,12 +17,17 @@ type AwesomeHomeConfig struct {
 }
 
 type ConfYaml struct {
-	BroadcastPort int
+	BroadcastPort          int
+	BroadcastPacketMaxSize int
+	BroadcastSendTime      time.Duration
 }
 
 func NewAwesomeHomeConfig(serviceName string, path string) *AwesomeHomeConfig {
 	conf := &AwesomeHomeConfig{defaultConf: []byte(`
-broadcast_port: 60504
+broadcast:
+  packet_max_size: 10240
+  port: 60504
+  send_time: 5 seconds
 `)}
 	err := conf.loadConf(serviceName, path)
 	if err != nil {
@@ -67,6 +73,8 @@ func (conf *AwesomeHomeConfig) loadConf(serviceName string, path string) error {
 		}
 	}
 
-	conf.BroadcastPort = viper.GetInt("broadcast_port")
+	conf.BroadcastPort = viper.GetInt("broadcast.port")
+	conf.BroadcastPacketMaxSize = viper.GetInt("broadcast.packet_max_size")
+	conf.BroadcastSendTime = viper.GetDuration("broadcast.send_time")
 	return nil
 }
