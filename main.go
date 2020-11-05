@@ -15,7 +15,7 @@ func main() {
 	processService := process.NewProcessService()
 	broadcastService := broadcast.NewBroadcastService(conf.BroadcastPacketMaxSize, conf.BroadcastPort)
 	appInfoService := info.NewAppInfoService(broadcastService, conf.BroadcastSendTime)
-	_ = command.NewCommandService(processService)
+	commandService := command.NewCommandService(processService)
 	_ = update.NewSelfUpdateService()
 
 	broadcastService.Init()
@@ -24,6 +24,7 @@ func main() {
 	httpServer := server.NewHttpServerService(conf.HttpServerPort)
 
 	httpServer.Register("/", appInfoService.HandleHttp)
+	httpServer.Register("/command", commandService.HandleHttp)
 
 	httpServer.Start()
 }

@@ -80,6 +80,6 @@ func (s *AppInfoService) HandleHttp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := w.Write([]byte(jsonStr)); err != nil {
-		fmt.Printf("error occured during handling http request %v, error: %v\n", r, err)
+		fmt.Printf("error occured during writing http request %v, error: %v\n", r, err)
 	}
 }

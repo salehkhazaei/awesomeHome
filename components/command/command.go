@@ -2,9 +2,13 @@ package command
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	"ir.skhf/awesomeHome/components/command/google"
 	"ir.skhf/awesomeHome/components/command/url"
 	"ir.skhf/awesomeHome/components/process"
+	"net/http"
+	"strings"
 )
 
 type Command interface {
@@ -36,4 +40,21 @@ func (s *CommandService) GetCommands() []Command {
 		&google.GoogleItCmd{},
 		&url.UrlOpenerCmd{},
 	}
+}
+
+func (s *CommandService) HandleHttp(w http.ResponseWriter, r *http.Request) {
+	buf := new(strings.Builder)
+	_, err := io.Copy(buf, r.Body)
+	if err != nil {
+		fmt.Printf("error occured during reading request: %v\n", err)
+		return
+	}
+
+	err = s.Run(buf.String())
+	if err != nil {
+		fmt.Printf("error occured during handling http request %v, error: %v\n", r, err)
+		return
+	}
+
+	_, _ = w.Write([]byte("done"))
 }
