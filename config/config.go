@@ -20,6 +20,8 @@ type ConfYaml struct {
 	BroadcastPort          int
 	BroadcastPacketMaxSize int
 	BroadcastSendTime      time.Duration
+
+	HttpServerPort int
 }
 
 func NewAwesomeHomeConfig(serviceName string, path string) *AwesomeHomeConfig {
@@ -28,6 +30,9 @@ broadcast:
   packet_max_size: 10240
   port: 60504
   send_time: 5 seconds
+http:
+  server:
+    port: 60503
 `)}
 	err := conf.loadConf(serviceName, path)
 	if err != nil {
@@ -76,5 +81,6 @@ func (conf *AwesomeHomeConfig) loadConf(serviceName string, path string) error {
 	conf.BroadcastPort = viper.GetInt("broadcast.port")
 	conf.BroadcastPacketMaxSize = viper.GetInt("broadcast.packet_max_size")
 	conf.BroadcastSendTime = viper.GetDuration("broadcast.send_time")
+	conf.HttpServerPort = viper.GetInt("http.server.port")
 	return nil
 }

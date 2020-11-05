@@ -1,7 +1,7 @@
 package google
 
 import (
-	"ir.skhf/awesomeHome/process"
+	"ir.skhf/awesomeHome/components/process"
 	"net/url"
 )
 

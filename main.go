@@ -1,12 +1,13 @@
 package main
 
 import (
-	"ir.skhf/awesomeHome/broadcast"
-	"ir.skhf/awesomeHome/command"
+	"ir.skhf/awesomeHome/components/broadcast"
+	"ir.skhf/awesomeHome/components/command"
+	"ir.skhf/awesomeHome/components/info"
+	"ir.skhf/awesomeHome/components/process"
+	"ir.skhf/awesomeHome/components/update"
 	"ir.skhf/awesomeHome/config"
-	"ir.skhf/awesomeHome/info"
-	"ir.skhf/awesomeHome/process"
-	"ir.skhf/awesomeHome/update"
+	"ir.skhf/awesomeHome/server"
 )
 
 func main() {
@@ -19,4 +20,10 @@ func main() {
 
 	broadcastService.Init()
 	appInfoService.Init()
+
+	httpServer := server.NewHttpServerService(conf.HttpServerPort)
+
+	httpServer.Register("/", appInfoService.HandleHttp)
+
+	httpServer.Start()
 }

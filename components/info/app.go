@@ -3,8 +3,9 @@ package info
 import (
 	"encoding/json"
 	"fmt"
-	"ir.skhf/awesomeHome/broadcast"
+	"ir.skhf/awesomeHome/components/broadcast"
 	"ir.skhf/awesomeHome/utils"
+	"net/http"
 	"time"
 )
 
@@ -68,5 +69,17 @@ func (s *AppInfoService) SendLoop() {
 		}
 
 		time.Sleep(s.SendTime)
+	}
+}
+
+func (s *AppInfoService) HandleHttp(w http.ResponseWriter, r *http.Request) {
+	jsonStr, err := s.Info()
+	if err != nil {
+		fmt.Printf("failed to build broadcast json due to %v\n", err)
+		return
+	}
+
+	if _, err := w.Write([]byte(jsonStr)); err != nil {
+		fmt.Printf("error occured during handling http request %v, error: %v\n", r, err)
 	}
 }

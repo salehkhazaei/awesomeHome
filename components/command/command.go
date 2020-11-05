@@ -2,9 +2,9 @@ package command
 
 import (
 	"errors"
-	"ir.skhf/awesomeHome/command/google"
-	"ir.skhf/awesomeHome/command/url"
-	"ir.skhf/awesomeHome/process"
+	"ir.skhf/awesomeHome/components/command/google"
+	"ir.skhf/awesomeHome/components/command/url"
+	"ir.skhf/awesomeHome/components/process"
 )
 
 type Command interface {

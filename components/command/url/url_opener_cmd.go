@@ -1,7 +1,7 @@
 package url
 
 import (
-	"ir.skhf/awesomeHome/process"
+	"ir.skhf/awesomeHome/components/process"
 	"net/url"
 )
 

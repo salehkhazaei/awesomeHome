@@ -1,7 +1,7 @@
 package video
 
 import (
-	"ir.skhf/awesomeHome/process"
+	"ir.skhf/awesomeHome/components/process"
 	"net/http"
 	"strings"
 )
