@@ -12,3 +12,12 @@ type GoogleItCmd struct {
 func (cmd *GoogleItCmd) Run() error {
 	return process.Exec("https://google.com?q=" + url.QueryEscape(cmd.Query))
 }
+
+func (cmd *GoogleItCmd) Detect(commandStr string) bool {
+	googleCmd := "google "
+	if commandStr[:len(googleCmd)] == googleCmd {
+		cmd.Query = commandStr[len(googleCmd):]
+		return true
+	}
+	return false
+}
