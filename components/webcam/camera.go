@@ -69,3 +69,11 @@ func (s *WebcamService) ReadImageFromCamera(cam *webcam.Webcam, format webcam.Pi
 
 	return imgBuf, nil
 }
+
+func (s *WebcamService) StopCamera(cam *webcam.Webcam) error {
+	return cam.StopStreaming()
+}
+
+func (s *WebcamService) ResumeCamera(cam *webcam.Webcam) error {
+	return cam.StartStreaming()
+}

@@ -55,6 +55,8 @@ func (s *AppInfoService) Init() {
 }
 
 func (s *AppInfoService) SendLoop() {
+	fmt.Printf("sending broadcast every %v\n", s.SendTime)
+
 	for {
 		jsonStr, err := s.Info()
 		if err != nil {
