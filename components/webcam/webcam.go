@@ -47,21 +47,27 @@ func (s *WebcamService) HandleFrameRequests(cam *webcam.Webcam, format webcam.Pi
 		}
 
 		for _, channel := range s.imageChannelMap {
-			channel <- imgBuf
+			select {
+			case channel <- imgBuf:
+			default:
+			}
 		}
 	}
 }
 
 func (s *WebcamService) HandleHttp(w http.ResponseWriter, r *http.Request) {
 	log.Println("connect from", r.RemoteAddr, r.URL)
+	startTime := time.Now()
 
 	rid := rand.Int63()
 	imageChan := make(chan *bytes.Buffer)
-
 	s.imageChannelMap[rid] = imageChan
+
+	log.Printf("image channel added %d", rid)
 	<-imageChan
 
 	defer func() {
+		log.Printf("image channel removed %d", rid)
 		delete(s.imageChannelMap, rid)
 	}()
 
@@ -70,6 +76,10 @@ func (s *WebcamService) HandleHttp(w http.ResponseWriter, r *http.Request) {
 	multipartWriter := multipart.NewWriter(w)
 	multipartWriter.SetBoundary(boundary)
 	for {
+		if time.Now().After(startTime.Add(30 * time.Second)) {
+			break
+		}
+
 		img := <-imageChan
 		image := img.Bytes()
 		iw, err := multipartWriter.CreatePart(textproto.MIMEHeader{
@@ -86,4 +96,6 @@ func (s *WebcamService) HandleHttp(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	multipartWriter.Close()
 }
