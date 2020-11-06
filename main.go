@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"ir.skhf/awesomeHome/components/broadcast"
 	"ir.skhf/awesomeHome/components/command"
 	"ir.skhf/awesomeHome/components/info"
@@ -12,6 +13,8 @@ import (
 )
 
 func main() {
+	fmt.Println("starting awesome home")
+
 	conf := config.NewAwesomeHomeConfig("", "")
 	processService := process.NewProcessService()
 	broadcastService := broadcast.NewBroadcastService(conf.BroadcastPacketMaxSize, conf.BroadcastPort)
@@ -20,15 +23,33 @@ func main() {
 	_ = update.NewSelfUpdateService()
 	webcamService := webcam.NewWebcamService()
 
-	broadcastService.Init()
+	fmt.Println("services created")
+
+	err := broadcastService.Init()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("broadcast service initialized")
+
 	appInfoService.Init()
-	webcamService.Init(nil, nil, nil, nil)
+
+	fmt.Println("app info service initialized")
+
+	err = webcamService.Init("/dev/video0", "", "", false)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("webcam service initialized")
 
 	httpServer := server.NewHttpServerService(conf.HttpServerPort)
 
 	httpServer.Register("/", appInfoService.HandleHttp)
 	httpServer.Register("/command", commandService.HandleHttp)
 	httpServer.Register("/webcam", webcamService.HandleHttp)
+
+	fmt.Println("starting http server")
 
 	httpServer.Start()
 }
