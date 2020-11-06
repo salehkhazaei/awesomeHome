@@ -29,6 +29,8 @@ func (s *WebcamService) Init(dev string, fmtstr string, szstr string, fps bool) 
 }
 
 func (s *WebcamService) HandleFrameRequests(cam *webcam.Webcam, format webcam.PixelFormat, w, h uint32) {
+	defer cam.Close()
+
 	for {
 		if len(s.imageChannelMap) == 0 {
 			// no requests

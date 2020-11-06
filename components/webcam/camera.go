@@ -3,7 +3,6 @@ package webcam
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"github.com/blackjack/webcam"
 )
 
@@ -39,7 +38,6 @@ func (s *WebcamService) OpenCamera(dev string, fmtstr string, szstr string, fps 
 	if err != nil {
 		return err
 	}
-	defer cam.Close()
 
 	format, w, h, err := PrepareCamera(cam, fmtstr, szstr)
 	if err != nil {
@@ -58,21 +56,16 @@ func (s *WebcamService) ReadImageFromCamera(cam *webcam.Webcam, format webcam.Pi
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("got the frame")
 
 	frame, err := cam.ReadFrame()
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("read the frame")
-
 	imgBuf, err := encodeToImageFrame(frame, w, h, format)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("ok")
 
 	return imgBuf, nil
 }
