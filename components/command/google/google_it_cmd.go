@@ -10,7 +10,7 @@ type GoogleItCmd struct {
 }
 
 func (cmd *GoogleItCmd) Run(processService *process.ProcessService) error {
-	return processService.Exec("https://google.com?q=" + url.QueryEscape(cmd.Query))
+	return processService.OpenBrowser("https://google.com?q=" + url.QueryEscape(cmd.Query))
 }
 
 func (cmd *GoogleItCmd) Detect(commandStr string) bool {

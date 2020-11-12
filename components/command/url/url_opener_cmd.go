@@ -10,7 +10,7 @@ type UrlOpenerCmd struct {
 }
 
 func (cmd *UrlOpenerCmd) Run(processService *process.ProcessService) error {
-	return processService.Exec(cmd.Url)
+	return processService.OpenBrowser(cmd.Url)
 }
 
 func (cmd *UrlOpenerCmd) Detect(commandStr string) bool {
